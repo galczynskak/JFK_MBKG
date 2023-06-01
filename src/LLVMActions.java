@@ -49,12 +49,72 @@ public class LLVMActions extends MBKGBaseListener {
         if(!v.type.equals(variables.get(ID))) {
             error(ctx.getStart().getLine(), "assignment type mismatch");
         }
-        if(v.type.equals("int")) {
-            LLVMGenerator.assignInt(ID, v.value);
+        if(v.type.equals("int")) LLVMGenerator.assignInt(ID, v.value);
+        if(v.type.equals("real)")) LLVMGenerator.assignFloat(ID, v.value);
+    }
+
+    @Override
+    public void exitDeclaration(MBKGParser.DeclarationContext ctx) {
+        String ID = ctx.ID().getText();
+        String TYPE = ctx.type().getText();
+        if (!variables.containsKey(ID)) {
+            if (types.contains(TYPE)){
+                variables.put(ID, TYPE);
+                if(TYPE.equals("int")) LLVMGenerator.declareInt(ID);
+                else if(TYPE.equals("float")) LLVMGenerator.declareFloat(ID);
+            } else {
+                ctx.getStart().getLine();
+                System.err.println("Line " + ctx.getStart().getLine() + ", unknown variable type: " + TYPE);
+            }
+        } else {
+            ctx.getStart().getLine();
+            System.err.println("Line " + ctx.getStart.getLine() + ", variabble already defined: " + ID);
         }
-        if(v.type.equals("real)")) {
-            LLVMGenerator.assignFloat(ID, v.value);
+    }
+
+    @Override
+    public void exitFunction_call(MBKGParser.Function_callContext ctx) {
+        String FUNC_NAME = ctx.function_name().getText();
+        if(FUNC_NAME.equals("print")) {
+            if(argumentsList.size() == 1) {
+                Value argument = argumentsList.get(0);
+                String ID = argument.value;
+                String type = variables.get(ID);
+                if (type != null) {
+                    if(type.equals("int")){
+                        LLVMGenerator.printInt(ID);
+                    } else if (tupe.equals("float")){
+                        LLVMGenerator.printFloat(ID);
+                    }
+                } else {
+                    ctx.getStart().getLine();
+                    System.err.println("Line " + ctx.getStart().getLine() + ", unknown variable: " + ID);
+                }
+            } else {
+                ctx.getStart.getLine();
+                System.err.println("Line " + ctx.getStart().getLine() + ", too many arguments in function print. Expected 1, got " + argumentsList.size());
+            }
+        } else if (FUNC_NAME.equals("scan")) {
+            if(argumentsList.size() == 1) {
+                Value argument = argumentsList.get(0);
+                String ID = argument.value;
+                String type = variables.get(ID);
+                if(type != null){
+                    if(type.equals("int")) {
+                        LLVMGenerator.scanInt(ID);
+                    } else if (type.equals("float")){
+                        LLVMGenerator.scanFloat(ID);
+                    }
+                }else {
+                    ctx.getStart().getLine();
+                    System.err.println("Line " + ctx.getStart().getLine() + ", unknown variable: " + ID);
+                }
+            } else {
+                ctx.getStart.getLine();
+                System.err.println("line " + ctx.getStart().getLine() + ", too many argument in function scan, Expected 1, got: " + argumentsList.size());
+            }
         }
+        argumentsList.clear();
     }
 
     private void error(int location, String msg) {
