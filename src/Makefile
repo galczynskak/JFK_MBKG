@@ -9,8 +9,8 @@ compile:
 	javac -cp $(ANTLR):output:. Main.java
 
 test:
-	java -cp $(ANTLR):output:. Main test.x > test.ll
-	lli-10 test.ll
+	java -cp $(ANTLR):output:. Main test.mbkg > test.ll
+	lli test.ll
 
 clean:
 	rm -f test.ll

@@ -1,7 +1,18 @@
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Stack;
+
+class Value {
+    public String type;
+    public String value;
+
+    public Value(String type, String value) {
+        this.type = type;
+        this.value = value;
+    }
+}
 
 public class LLVMActions extends MBKGBaseListener {
     HashMap<String, String> variables = new HashMap<String, String>();
@@ -31,7 +42,7 @@ public class LLVMActions extends MBKGBaseListener {
             ID = ctx.declaration().getChild(1).getText();
         }
         if(!variables.containsKey(ID)){
-            error(ctx.getStart.getLine(), "variable not declared");
+            error(ctx.getStart().getLine(), "variable not declared");
         }
 
         Value v = stack.pop();
@@ -44,6 +55,10 @@ public class LLVMActions extends MBKGBaseListener {
         if(v.type.equals("real)")) {
             LLVMGenerator.assignFloat(ID, v.value);
         }
+    }
+
+    private void error(int location, String msg) {
+        System.out.println("Error at line " + location + ": " + msg);
     }
 
 }

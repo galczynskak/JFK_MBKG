@@ -7,7 +7,7 @@ public class Main {
 
         MBKGLexer lexer = new MBKGLexer(input);
 
-        CommonTokenStream tokens = new ComonTokenStream(lexer);
+        CommonTokenStream tokens = new CommonTokenStream(lexer);
         MBKGParser parser = new MBKGParser(tokens);
 
         ParseTree tree = parser.program();
