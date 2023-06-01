@@ -46,7 +46,7 @@ public class LLVMActions extends MBKGBaseListener {
             error(ctx.getStart().getLine(), "assignment type mismatch");
         }
         if (v.type.equals("int")) LLVMGenerator.assignInt(ID, v.value);
-        if (v.type.equals("real)")) LLVMGenerator.assignFloat(ID, v.value);
+        if (v.type.equals("float")) LLVMGenerator.assignFloat(ID, v.value);
     }
 
     @Override
@@ -88,10 +88,10 @@ public class LLVMActions extends MBKGBaseListener {
                 }
             } else {
                 if (argumentsList.size() == 0) {
-                    ctx.getStart.getLine();
+                    ctx.getStart().getLine();
                     System.err.println("line " + ctx.getStart().getLine() + ", no arguments in function print, Expected 1, got 0");
                 } else {
-                    ctx.getStart.getLine();
+                    ctx.getStart().getLine();
                     System.err.println("line " + ctx.getStart().getLine() + ", too many argument in function print, Expected 1, got: " + argumentsList.size());
                 }
             }
@@ -112,10 +112,10 @@ public class LLVMActions extends MBKGBaseListener {
                 }
             } else {
                 if (argumentsList.size() == 0) {
-                    ctx.getStart.getLine();
+                    ctx.getStart().getLine();
                     System.err.println("line " + ctx.getStart().getLine() + ", no arguments in function scan, Expected 1, got 0");
                 } else {
-                    ctx.getStart.getLine();
+                    ctx.getStart().getLine();
                     System.err.println("line " + ctx.getStart().getLine() + ", too many argument in function scan, Expected 1, got: " + argumentsList.size());
                 }
 
@@ -125,7 +125,7 @@ public class LLVMActions extends MBKGBaseListener {
     }
 
     @Override
-    public void exitSingle5(MBKGParser.Single5Context ctx){
+    public void exitValue(MBKGParser.ValueContext ctx) {
         try {
             argumentsList.add(new Value("ID", ctx.ID().getText()));
         } catch (NullPointerException e) {}
@@ -157,8 +157,8 @@ public class LLVMActions extends MBKGBaseListener {
             int reg = -1;
             if (type.equals("int")) {
                 reg = LLVMGenerator.loadInt(ID);
-            } else if (type.equals("real")) {
-                reg = LLVMGenerator.loadReal(ID);
+            } else if (type.equals("float")) {
+                reg = LLVMGenerator.loadFloat(ID);
             }
             stack.push(new Value(type, "%" + reg));
         } else {
@@ -177,7 +177,7 @@ public class LLVMActions extends MBKGBaseListener {
             }
             if (v1.type.equals("float")) {
                 LLVMGenerator.addFloat(v1.value, v2.value);
-                stack, push(new Value("real", "%" + (LLVMGenerator.reg - 1)));
+                stack.push(new Value("float", "%" + (LLVMGenerator.reg - 1)));
             }
         } else {
             error(ctx.getStart().getLine(), "addition type mismatch");
@@ -195,7 +195,7 @@ public class LLVMActions extends MBKGBaseListener {
             }
             if (v1.type.equals("float")) {
                 LLVMGenerator.subFloat(v1.value, v2.value);
-                stack, push(new Value("real", "%" + (LLVMGenerator.reg - 1)));
+                stack.push(new Value("float", "%" + (LLVMGenerator.reg - 1)));
             }
         } else {
             error(ctx.getStart().getLine(), "subtraction type mismatch");
@@ -213,7 +213,7 @@ public class LLVMActions extends MBKGBaseListener {
             }
             if (v1.type.equals("float")) {
                 LLVMGenerator.multFloat(v1.value, v2.value);
-                stack, push(new Value("real", "%" + (LLVMGenerator.reg - 1)));
+                stack.push(new Value("float", "%" + (LLVMGenerator.reg - 1)));
             }
         } else {
             error(ctx.getStart().getLine(), "multiplication type mismatch");
@@ -231,7 +231,7 @@ public class LLVMActions extends MBKGBaseListener {
             }
             if (v1.type.equals("float")) {
                 LLVMGenerator.divFloat(v1.value, v2.value);
-                stack, push(new Value("real", "%" + (LLVMGenerator.reg - 1)));
+                stack.push(new Value("float", "%" + (LLVMGenerator.reg - 1)));
             }
         } else {
             error(ctx.getStart().getLine(), "division type mismatch");

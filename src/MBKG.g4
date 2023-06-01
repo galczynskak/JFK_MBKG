@@ -36,13 +36,15 @@ expression4: expression5					#single4
 		   | expression4 '/' expression4	#div
 		   ;
 
-expression5: value							#single5
+expression5: ID 	                        #id
+		   | INT	                        #int 
+		   | FLOAT 							#float
 		   | '(' expression1 ')'			#par
 		   ;
 
-value: ID 	 #id
-	 | INT	 #int 
-	 | FLOAT #float
+value: ID
+	 | INT
+	 | FLOAT
 	 ;
 
 SCAN: 'scan' ;

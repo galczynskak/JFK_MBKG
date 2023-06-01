@@ -17,30 +17,30 @@ public class LLVMGenerator {
     }
 
     static void declareFloat(String id) {
-        main_text += "%" + id + " alloca i32\n";
+        main_text += "%" + id + " = alloca double\n";
     }
 
     static void printInt(String id) {
-        main_text += "%" + reg + " load i32, i32* %" + id + "\n";
+        main_text += "%" + reg + " = load i32, i32* %" + id + "\n";
         reg++;
-        main_text += "%" + reg + " call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @strp, i32 0, i32 0), i32 %" + (reg - 1) + ")\n";
+        main_text += "%" + reg + " = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @strp, i32 0, i32 0), i32 %" + (reg - 1) + ")\n";
         reg++;
     }
 
     static void printFloat(String id) {
-        main_text += "%" + reg + " =load double, double* %" + id + "\n";
+        main_text += "%" + reg + " = load double, double* %" + id + "\n";
         reg++;
         main_text += "%" + reg + " = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @strpd, i32 0, i32 0), double %" + (reg - 1) + ")\n";
         reg++;
     }
 
     static void scanInt(String id) {
-        main_text += "%" + reg + " = call i32 (i8*, ...) @__isoc99_scanf(i8* getelementptr inbounds ([3 x i8],, [3 x i8]* @strs, i32 0, i32 0), i32* %" + id + ")\n";
+        main_text += "%" + reg + " = call i32 (i8*, ...) @__isoc99_scanf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @strs, i32 0, i32 0), i32* %" + id + ")\n";
         reg++;
     }
 
     static void scanFloat(String id) {
-        main_text += "%" + reg + " = call i32 (i8*, ...) @__isoc99_scanf(i8* getelementpts inbounds ([4 x i8], [4 x i8]* @strd, i320, i320), double* %" + id + ")\n";
+        main_text += "%" + reg + " = call i32 (i8*, ...) @__isoc99_scanf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @strsd, i32 0, i32 0), double* %" + id + ")\n";
         reg++;
     }
 
@@ -91,7 +91,7 @@ public class LLVMGenerator {
         return reg - 1;
     }
 
-    static int loadReal(String id) {
+    static int loadFloat(String id) {
         main_text += "%" + reg + " = load double, double* %" + id + "\n";
         reg++;
         return reg - 1;
