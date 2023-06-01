@@ -1,6 +1,6 @@
 ANTLR=../antlr-4.13.0-complete.jar
 
-all: generate compile test
+all: generate compile build
 
 generate:
 	java -jar $(ANTLR) -o output MBKG.g4
@@ -8,8 +8,10 @@ generate:
 compile:
 	javac -cp $(ANTLR):output:. Main.java
 
-test:
+build:
 	java -cp $(ANTLR):output:. Main test.mbkg > test.ll
+	
+run:	
 	lli test.ll
 
 clean:

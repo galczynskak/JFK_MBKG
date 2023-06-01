@@ -44,6 +44,18 @@ public class LLVMGenerator {
         reg++;
     }
 
+    static int loadInt(String id){
+      main_text += "%"+reg+" = load i32, i32* %"+id+"\n";
+      reg++;
+      return reg-1;
+   }
+
+   static int loadReal(String id){
+      main_text += "%"+reg+" = load double, double* %"+id+"\n";
+      reg++;
+      return reg-1;
+   }
+
     static String generate(){
         String text = "";
         text += "declare i32 @printf(i8*, ...)\n";

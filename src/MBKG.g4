@@ -20,27 +20,30 @@ assignment: declaration '=' operation
 
 operation: expression1 ;
 
-expression1: expression2
-		   | expression1 '+' expression1
+expression1: expression2					#single1
+		   | expression1 '+' expression1	#add
 		   ;
 
-expression2: expression3
-		   | expression2 '-' expression2
+expression2: expression3					#single2
+		   | expression2 '-' expression2	#sub
 		   ;
 
-expression3: expression4
-		   | expression3 '*' expression3
+expression3: expression4					#single3
+		   | expression3 '*' expression3	#mult
 		   ;
 
-expression4: expression5
-		   | expression4 '/' expression4
+expression4: expression5					#single4
+		   | expression4 '/' expression4	#div
 		   ;
 
-expression5: value
-		   | '(' expression1 ')'
+expression5: value							#single5
+		   | '(' expression1 ')'			#par
 		   ;
 
-value: ID | INT | FLOAT ;
+value: ID 	 #id
+	 | INT	 #int 
+	 | FLOAT #float
+	 ;
 
 SCAN: 'scan' ;
 
