@@ -1,4 +1,6 @@
 .idea
 /gen/
-/output/
+src/output/
 *.iml
+*.class
+*.ll
