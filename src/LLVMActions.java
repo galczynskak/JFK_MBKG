@@ -190,11 +190,11 @@ public class LLVMActions extends MBKGBaseListener {
         Value v2 = stack.pop();
         if (v1.type.equals(v2.type)) {
             if (v1.type.equals("int")) {
-                LLVMGenerator.subInt(v1.value, v2.value);
+                LLVMGenerator.subInt(v2.value, v1.value);
                 stack.push(new Value("int", "%" + (LLVMGenerator.reg - 1)));
             }
             if (v1.type.equals("float")) {
-                LLVMGenerator.subFloat(v1.value, v2.value);
+                LLVMGenerator.subFloat(v2.value, v1.value);
                 stack.push(new Value("float", "%" + (LLVMGenerator.reg - 1)));
             }
         } else {
@@ -226,11 +226,11 @@ public class LLVMActions extends MBKGBaseListener {
         Value v2 = stack.pop();
         if (v1.type.equals(v2.type)) {
             if (v1.type.equals("int")) {
-                LLVMGenerator.divInt(v1.value, v2.value);
+                LLVMGenerator.divInt(v2.value, v1.value);
                 stack.push(new Value("int", "%" + (LLVMGenerator.reg - 1)));
             }
             if (v1.type.equals("float")) {
-                LLVMGenerator.divFloat(v1.value, v2.value);
+                LLVMGenerator.divFloat(v2.value, v1.value);
                 stack.push(new Value("float", "%" + (LLVMGenerator.reg - 1)));
             }
         } else {
