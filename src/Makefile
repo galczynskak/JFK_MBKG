@@ -9,7 +9,7 @@ compile:
 	javac -cp $(ANTLR):output:. Main.java
 
 build:
-	java -cp $(ANTLR):output:. Main test.mbkg > test.ll
+	java -cp $(ANTLR):output:. Main $(file) > test.ll
 	
 run:	
 	lli test.ll

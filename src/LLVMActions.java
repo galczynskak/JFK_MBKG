@@ -30,34 +30,186 @@ public class LLVMActions extends MBKGBaseListener {
     }
 
     @Override
-    public void exitAssignment(MBKGParser.AssignmentContext ctx) {
-        String ID;
-        try {
-            ID = ctx.ID().getText();
-        } catch (NullPointerException e) {
-            ID = ctx.declaration().getChild(1).getText();
+    public void exitDeclAssign(MBKGParser.DeclAssignContext ctx) {
+        String ID = ctx.declaration().getChild(1).getText();
+        String ArrayOperation = ctx.operation().getChild(0).getText();
+        if (ArrayOperation.charAt(0) != '[') {
+            if (!variables.containsKey(ID)) {
+                error(ctx.getStart().getLine(), "variable not declared");
+            }
+            Value v = stack.pop();
+            if (!v.type.equals(variables.get(ID))) {
+                error(ctx.getStart().getLine(), "assignment type mismatch");
+            }
+            if (v.type.equals("int")) {
+                LLVMGenerator.assignInt(ID, v.value);
+            }
+            if (v.type.equals("float")) {
+                LLVMGenerator.assignFloat(ID, v.value);
+            }
+        } else {
+            try {
+                ID = ctx.declaration().getChild(2).getText();
+                String arrType = variables.get(ID);
+                String[] split_array_type = arrType.split("\\[");
+                String type = split_array_type[0];
+                String len = split_array_type[1].split("\\]")[0];
+                List<String> values = new ArrayList<>();
+
+                if (argumentsList.size() > Integer.parseInt(len)) {
+                    error(ctx.getStart().getLine(), "array is bigger than declared");
+                }
+                for (Value v : argumentsList) {
+
+                    if (v.type.equals("ID") && variables.containsKey(v.value)) {
+                        if (type.equals("int")) {
+                            values.add("%" + LLVMGenerator.loadInt(v.value));
+                        } else if (type.equals("float")) {
+                            values.add("%" + LLVMGenerator.loadFloat(v.value));
+                        }
+                    } else if (v.type.equals("ARRAY_ID") && variables.containsKey(v.value)) {
+                        String[] split_array_id = v.value.split("\\[");
+                        String id = split_array_id[0];
+                        String arrId = split_array_id[1].split("\\]")[0];
+                        if (type.equals("int")) {
+                            values.add("%" + LLVMGenerator.loadIntArrayValue(id, arrId, len));
+                        } else if (type.equals("float")) {
+                            values.add("%" + LLVMGenerator.loadFloatArrayValue(id, arrId, len));
+                        }
+                    } else if (v.type.equals("int") || v.type.equals("float")) {
+                        values.add(v.value);
+                    }
+                }
+                for (int i = 0; i < values.size(); i++) {
+                    if (type.equals("int")) {
+                        LLVMGenerator.assignArrayIntElement(values.get(i), ID, Integer.toString(i), len);
+                    } else if (type.equals("float")) {
+                        LLVMGenerator.assignArrayFloatElement(values.get(i), ID, Integer.toString(i), len);
+                    }
+                }
+                argumentsList.clear();
+            } catch (ArrayIndexOutOfBoundsException e) {
+                error(ctx.getStart().getLine(), "variable is not an array");
+            }
         }
+
+    }
+
+    @Override
+    public void exitIdAssign(MBKGParser.IdAssignContext ctx) {
+        String ID = ctx.ID().getText();
+
         if (!variables.containsKey(ID)) {
             error(ctx.getStart().getLine(), "variable not declared");
         }
+        String ArrayOperation = ctx.operation().getChild(0).getText();
+        if (ArrayOperation.charAt(0) != '[') {
+            Value v = stack.pop();
+            if (!v.type.equals(variables.get(ID))) {
+                error(ctx.getStart().getLine(), "assignment type mismatch");
+            }
+            if (v.type.equals("int")) {
+                LLVMGenerator.assignInt(ID, v.value);
+            }
+            if (v.type.equals("float")) {
+                LLVMGenerator.assignFloat(ID, v.value);
+            }
+        } else {
+            try {
+                String arrType = variables.get(ID);
+                String[] split_array_type = arrType.split("\\[");
+                String type = split_array_type[0];
+                String len = split_array_type[1].split("\\]")[0];
+                List<String> values = new ArrayList<>();
+                if (argumentsList.size() != Integer.parseInt(len)) {
+                    error(ctx.getStart().getLine(), "array size mismatch");
+                }
+                for (Value v : argumentsList) {
+
+                    if (v.type.equals("ID") && variables.containsKey(v.value)) {
+                        if (type.equals("int")) {
+                            values.add("%" + LLVMGenerator.loadInt(v.value));
+                        } else if (type.equals("float")) {
+                            values.add("%" + LLVMGenerator.loadFloat(v.value));
+                        }
+                    } else if (v.type.equals("ARRAY_ID") && variables.containsKey(v.value)) {
+                        String[] split_array_id = v.value.split("\\[");
+                        String id = split_array_id[0];
+                        String arrId = split_array_id[1].split("\\]")[0];
+                        if (type.equals("int")) {
+                            values.add("%" + LLVMGenerator.loadIntArrayValue(id, arrId, len));
+                        } else if (type.equals("float")) {
+                            values.add("%" + LLVMGenerator.loadFloatArrayValue(id, arrId, len));
+                        }
+                    } else if (v.type.equals("int") || v.type.equals("float")) {
+                        values.add(v.value);
+                    }
+                }
+                for (int i = 0; i < values.size(); i++) {
+                    if (type.equals("int")) {
+                        LLVMGenerator.assignArrayIntElement(values.get(i), ID, Integer.toString(i), len);
+                    } else if (type.equals("float")) {
+                        LLVMGenerator.assignArrayFloatElement(values.get(i), ID, Integer.toString(i), len);
+                    }
+                }
+                argumentsList.clear();
+            } catch (ArrayIndexOutOfBoundsException e) {
+                error(ctx.getStart().getLine(), "variable is not an array");
+            }
+        }
+
+    }
+
+    @Override
+    public void exitArrayIdAssign(MBKGParser.ArrayIdAssignContext ctx) {
+        String ARRAY_ID = ctx.ARRAY_ID().getText();
+        String[] split_array_id = ARRAY_ID.split("\\[");
+        String id = split_array_id[0];
+        String arrId = split_array_id[1].split("\\]")[0];
+        if (!variables.containsKey(id)) {
+            error(ctx.getStart().getLine(), "variable not declared");
+        }
+        String arrType = variables.get(id);
+        String[] split_array_type = arrType.split("\\[");
+        String type = split_array_type[0];
+        String len = split_array_type[1].split("\\]")[0];
+
+        if (Integer.parseInt(arrId) >= Integer.parseInt(len) || Integer.parseInt(arrId) < 0){
+            error(ctx.getStart().getLine(), "allocation fail :) (:");
+        }
 
         Value v = stack.pop();
-        if (!v.type.equals(variables.get(ID))) {
-            error(ctx.getStart().getLine(), "assignment type mismatch");
+        if (!v.type.equals(type)) {
+            error(ctx.getStart().getLine(), "arrayId assignment type mismatch");
         }
-        if (v.type.equals("int")) LLVMGenerator.assignInt(ID, v.value);
-        if (v.type.equals("float")) LLVMGenerator.assignFloat(ID, v.value);
+        if (v.type.equals("int")) {
+            LLVMGenerator.assignArrayIntElement(v.value, id, arrId, len);
+        }
+        if (v.type.equals("float")) {
+            LLVMGenerator.assignArrayFloatElement(v.value, id, arrId, len);
+        }
     }
 
     @Override
     public void exitDeclaration(MBKGParser.DeclarationContext ctx) {
         String ID = ctx.ID().getText();
         String TYPE = ctx.type().getText();
+
         if (!variables.containsKey(ID)) {
             if (types.contains(TYPE)) {
-                variables.put(ID, TYPE);
-                if (TYPE.equals("int")) LLVMGenerator.declareInt(ID);
-                else if (TYPE.equals("float")) LLVMGenerator.declareFloat(ID);
+                try {
+                    String ARRAY_LEN = ctx.array_declaration().getChild(1).getText();
+                    variables.put(ID, TYPE + '[' + ARRAY_LEN + ']');
+                    if (TYPE.equals("int")) {
+                        LLVMGenerator.declareIntArray(ID, ARRAY_LEN);
+                    } else if (TYPE.equals("float")) {
+                        LLVMGenerator.declareFloatArray(ID, ARRAY_LEN);
+                    }
+                } catch (NullPointerException ex) {
+                    variables.put(ID, TYPE);
+                    if (TYPE.equals("int")) LLVMGenerator.declareInt(ID);
+                    else if (TYPE.equals("float")) LLVMGenerator.declareFloat(ID);
+                }
             } else {
                 ctx.getStart().getLine();
                 System.err.println("Line " + ctx.getStart().getLine() + ", unknown variable type: " + TYPE);
@@ -143,6 +295,10 @@ public class LLVMActions extends MBKGBaseListener {
         try {
             argumentsList.add(new Value("float", ctx.FLOAT().getText()));
         } catch (NullPointerException e) {}
+
+        try {
+            argumentsList.add(new Value("ARRAY_ID", ctx.ARRAY_ID().getText()));
+        } catch (NullPointerException e) {}
     }
 
     @Override
@@ -169,6 +325,29 @@ public class LLVMActions extends MBKGBaseListener {
             stack.push(new Value(type, "%" + reg));
         } else {
             error(ctx.getStart().getLine(), "no such variable");
+        }
+    }
+
+    @Override
+    public void exitArray_id(MBKGParser.Array_idContext ctx) {
+        String ARRAY_ID = ctx.ARRAY_ID().getText();
+        String[] split_array_id = ARRAY_ID.split("\\[");
+        String id = split_array_id[0];
+        String arrId = split_array_id[1].split("\\]")[0];
+        if (variables.containsKey(id)) {
+            String arrType = variables.get(id);
+            String[] split_array_type = arrType.split("\\[");
+            String type = split_array_type[0];
+            String len = split_array_type[1].split("\\]")[0];
+            int reg = -1;
+            if (type.equals("int")) {
+                reg = LLVMGenerator.loadIntArrayValue(id, arrId, len);
+            } else if (type.equals("float")) {
+                reg = LLVMGenerator.loadFloatArrayValue(id, arrId, len);
+            }
+            stack.push(new Value(type, "%" + reg));
+        } else {
+            error(ctx.getStart().getLine(), "no such array");
         }
     }
 

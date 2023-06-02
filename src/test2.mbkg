@@ -1,0 +1,9 @@
+int x
+int y
+int z 
+
+scan x
+scan y
+scan z 
+
+int{3} arr = [1, 2, 3]
