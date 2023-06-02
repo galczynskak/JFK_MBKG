@@ -20,6 +20,24 @@ public class LLVMGenerator {
         main_text += "%" + id + " = alloca double\n";
     }
 
+    static void printConstantInt(String value) {
+        main_text += "%__internal__tmp = alloca i32\n";
+        main_text += "store i32 " + value + ", i32* %__internal__tmp\n";
+        main_text += "%" + reg + " = load i32, i32* %__internal__tmp\n";
+        reg++;
+        main_text += "%" + reg + " = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @strp, i32 0, i32 0), i32 %" + (reg - 1) + ")\n";
+        reg++;
+    }
+
+    static void printConstantFloat(String value) {
+        main_text += "%__internal__tmp = alloca double\n";
+        main_text += "store double " + value + ", double* %__internal__tmp\n";
+        main_text += "%" + reg + " = load double, double* %__internal__tmp\n";
+        reg++;
+        main_text += "%" + reg + " = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @strpd, i32 0, i32 0), double %" + (reg - 1) + ")\n";
+        reg++;
+    }
+
     static void printInt(String id) {
         main_text += "%" + reg + " = load i32, i32* %" + id + "\n";
         reg++;

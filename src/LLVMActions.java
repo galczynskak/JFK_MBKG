@@ -83,8 +83,14 @@ public class LLVMActions extends MBKGBaseListener {
                         LLVMGenerator.printFloat(ID);
                     }
                 } else {
-                    ctx.getStart().getLine();
-                    System.err.println("Line " + ctx.getStart().getLine() + ", unknown variable: " + ID);
+                    if (argument.type.equals("int")) {
+                        LLVMGenerator.printConstantInt(ID);
+                    } else if (argument.type.equals("float")) {
+                        LLVMGenerator.printConstantFloat(ID);
+                    } else {
+                        ctx.getStart().getLine();
+                        System.err.println("Line " + ctx.getStart().getLine() + ", unknown variable: " + ID);
+                    }
                 }
             } else {
                 if (argumentsList.size() == 0) {
