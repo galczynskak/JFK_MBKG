@@ -1,9 +1,13 @@
+import java.util.Stack;
+
 public class LLVMGenerator {
 
     static String header_text = "";
     static String main_text = "";
     static String buffer = "";
     static int reg = 1;
+    static int br = 0;
+    static Stack<Integer> brstack = new Stack<Integer>();
 
     static void assignInt(String id, String value) {
         buffer += "store i32 " + value + ", i32* " + id + "\n";
@@ -19,7 +23,7 @@ public class LLVMGenerator {
         } else {
             buffer += "%" + id + " = alloca i32\n";
         }
-   }
+    }
 
     static void declareFloat(String id, Boolean global) {
         if (global) {
@@ -27,7 +31,7 @@ public class LLVMGenerator {
         } else {
             buffer += "%" + id + " = alloca double\n";
         }
-   }
+    }
 
     static void printConstantInt(String value) {
         buffer += "%__internal__tmp = alloca i32\n";
@@ -112,7 +116,7 @@ public class LLVMGenerator {
         reg++;
     }
 
-    static void declareIntArray(String id, String len, Boolean global){
+    static void declareIntArray(String id, String len, Boolean global) {
         if (global) {
             header_text += "@" + id + " = global [" + len + " x i32] [i32 0";
             for (int i = 1; i < Integer.parseInt(len); i++) {
@@ -122,9 +126,9 @@ public class LLVMGenerator {
         } else {
             buffer += "%" + id + " = alloca [" + len + " x i32]\n";
         }
-   }
+    }
 
-    static void declareFloatArray(String id, String len, Boolean global){
+    static void declareFloatArray(String id, String len, Boolean global) {
         if (global) {
             header_text += "@" + id + " = global [" + len + " x double] [double 0.0";
             for (int i = 1; i < Integer.parseInt(len); i++) {
@@ -134,15 +138,15 @@ public class LLVMGenerator {
         } else {
             buffer += "%" + id + " = alloca [" + len + " x double]\n";
         }
-   }
+    }
 
-   static void assignArrayIntElement(String value, String arrayId, String elemId, String len) {
+    static void assignArrayIntElement(String value, String arrayId, String elemId, String len) {
         buffer += "%" + reg + " = getelementptr [" + len + " x i32], [" + len + " x i32]* " + arrayId + ", i32 0, i32 " + elemId + "\n";
         buffer += "store i32 " + value + ", i32* %" + reg + "\n";
         reg++;
     }
 
-   static void assignArrayFloatElement(String value, String arrayId, String elemId, String len) {
+    static void assignArrayFloatElement(String value, String arrayId, String elemId, String len) {
         buffer += "%" + reg + " = getelementptr [" + len + " x double], [" + len + " x double]* " + arrayId + ", double 0, double " + elemId + "\n";
         buffer += "store double " + value + ", double* %" + reg + "\n";
         reg++;
@@ -160,20 +164,46 @@ public class LLVMGenerator {
         return reg - 1;
     }
 
-    static int loadIntArrayValue(String id, String arrId, String len){
-      buffer += "%" + reg + " = getelementptr [" + len + " x i32], [" + len + " x i32]* " + id + ", i32 0, i32 " + arrId + "\n";
-      reg++;
-      buffer += "%" + reg + " = load i32, i32* %" + (reg-1) + "\n";
-      reg++;
-      return reg-1;
+    static int loadIntArrayValue(String id, String arrId, String len) {
+        buffer += "%" + reg + " = getelementptr [" + len + " x i32], [" + len + " x i32]* " + id + ", i32 0, i32 " + arrId + "\n";
+        reg++;
+        buffer += "%" + reg + " = load i32, i32* %" + (reg - 1) + "\n";
+        reg++;
+        return reg - 1;
     }
 
-   static int loadFloatArrayValue(String id, String arrId, String len){
+    static int loadFloatArrayValue(String id, String arrId, String len) {
         buffer += "%" + reg + " = getelementptr [" + len + " x double], [" + len + " x double]* " + id + ", double 0, double " + arrId + "\n";
         reg++;
-        buffer += "%" + reg + " = load double, double* %" + (reg-1) + "\n";
+        buffer += "%" + reg + " = load double, double* %" + (reg - 1) + "\n";
         reg++;
-        return reg-1;
+        return reg - 1;
+    }
+
+    static void icmp(String id, String value, String type, String cond) {
+        buffer += "%" + reg + " = load " + type + ", " + type + "* %" + id + "\n";
+        reg++;
+        buffer += "%" + reg + " = icmp " + cond + " " + type + " %" + (reg - 1) + ", " + value + "\n";
+        reg++;
+    }
+
+    static void ifstart() {
+        br++;
+        buffer += "br i1 %" + (reg - 1) + ", label %true" + br + ", label %false" + br + "\n";
+        buffer += "true" + br + ":\n";
+        brstack.push(br);
+    }
+
+    static void ifend() {
+        int b = brstack.pop();
+        buffer += "br label %end" + b + "\n";
+        buffer += "false" + b + ":\n";
+    }
+
+    static void elseend() {
+        int b = brstack.pop();
+        buffer += "br label %end" + b + "\n";
+        buffer += "end" + b + ":\n"
     }
 
     static void close_main() {

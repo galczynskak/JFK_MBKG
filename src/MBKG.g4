@@ -1,10 +1,13 @@
 grammar MBKG;
 
-program: (statement? NEWLINE)* statement? ;
+program: block;
+
+block: (statement? NEWLINE)* statement? ;
 
 statement: declaration
 		 | function_call
 		 | assignment
+		 | ifblock
 		 ;
 
 array_declaration : '{' INT '}';
@@ -29,6 +32,20 @@ assignment: declaration '=' operation	#declAssign
 		  | ID '=' operation			#idAssign
 		  | ARRAY_ID '=' expression1	#arrayIdAssign
 		  ;
+
+ifblock: IF condition BEGIN blockif ENDIF ELSE blockelse ENDELSE;
+
+blockif: block;
+
+blockelse: block;
+
+condition: ID if_operation comparable_value;
+
+if_operation: 	  EQUALS #equal
+				| NOTEQUALS #notequal
+				| LESS #less
+				| GREATER #greater
+				;
 
 operation: expression1 | array ;
 
@@ -61,9 +78,29 @@ value: ID
 	 | ARRAY_ID
 	 ;
 
+comparable_value: INT | FLOAT;
+
 SCAN: 'scan' ;
 
 PRINT: 'print' ;
+
+IF: 'if';
+
+ENDIF: 'endif';
+
+ELSE: 'else';
+
+ENDELSE: 'endelse';
+
+BEGIN: 'begin';
+
+EQUALS: '==';
+
+NOTEQUALS: '!=';
+
+GREATER: '>';
+
+LESS: '<';
 
 ID : ('a'..'z'|'A'..'Z')+;
 
