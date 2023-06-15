@@ -1,23 +1,22 @@
-int x = 5
-float y = 7.2
-y = 7.1
+int x
+float y
 
-scan x
+scan(x)
 x = x + 1
-print x
+print(x)
 x = x - 1
-print x
+print(x)
 x = x * 2
-print x
+print(x)
 x = x / 2
-print x
+print(x)
 
-scan y
+scan(y)
 y = y + 1.0
-print y
+print(y)
 y = y - 1.0
-print y
+print(y)
 y = y * 2.0
-print y
+print(y)
 y = y / 2.0
-print y
+print(y)

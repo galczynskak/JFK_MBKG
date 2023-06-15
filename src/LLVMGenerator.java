@@ -208,6 +208,7 @@ public class LLVMGenerator {
         int b = brstack.pop();
         buffer += "br label %end" + b + "\n";
         buffer += "false" + b + ":\n";
+        brstack.push(b);
     }
 
     static void elseend() {

@@ -1,17 +1,7 @@
 grammar MBKG;
 
+// general
 program: (function? NEWLINE)* block;
-
-function: type FUNCTION ID '(' fparams ')' BEGIN fblock return ENDFUNCTION
-		| SCAN
-		| PRINT
-		;
-
-return: RETURN ID NEWLINE;
-
-fblock: block;
-
-fparams:  type (ID ',' fparams)* ;
 
 block: (statement? NEWLINE)*;
 
@@ -22,41 +12,13 @@ statement: declaration
 		 | loopblock
 		 ;
 
-loopblock: LOOP ID condition BEGIN blockfor ENDLOOP;
+// loops
+loopblock: LOOP condition BEGIN blockfor ENDLOOP;
 
 blockfor: block;
 
-array_declaration : '{' INT '}';
-
-array_values : value ',' array_values
-		   	 | value
-		   	 ;
-
-array: '[' array_values ']';
-
-declaration: type ID
-		   | type array_declaration ID
-		   ;
-
-type: 'int' | 'float' ;
-
-function_call: function value ;
-
-assignment: declaration '=' operation	#declAssign
-		  | ID '=' call_function 		#funcAssign
-		  | ID '=' operation			#idAssign
-		  | ARRAY_ID '=' expression1	#arrayIdAssign
-		  ;
-
-call_function: function_name '(' arguments ')';
-
-function_name: function;
-
-arguments: value ',' arguments
-		 | value
-		 ;
-
-ifblock: IF condition BEGIN blockif ENDIF ELSE blockelse ENDELSE;
+// conditional stmts
+ifblock: IF condition BEGIN NEWLINE? blockif ENDIF NEWLINE? ELSE NEWLINE? blockelse ENDELSE;
 
 blockif: block;
 
@@ -71,6 +33,52 @@ if_operation: 	  EQUALS #equal
 				| LESSTHAN #lessthan
 				| GREATERTHAN #greaterthan
 				;
+
+comparable_value: ID | INT | FLOAT;
+
+// user-defined functions
+function_call: function_name '(' arguments ')' ;
+
+function: type FUNCTION ID '(' fparams ')' BEGIN fblock return ENDFUNCTION;
+
+return: RETURN ID NEWLINE;
+
+fblock: block;
+
+fparams: type ID ',' fparams 
+	   | type ID
+	   |
+	   ;
+
+defined_functions: SCAN | PRINT | ID;
+
+function_name: defined_functions;
+
+arguments: value ',' arguments
+		 | value
+		 |
+		 ;
+
+// variables
+array_declaration : '{' INT '}';
+
+array_values : value ',' array_values
+		   	 | value
+		   	 ;
+
+array: '[' array_values ']';
+
+declaration: type ID
+		   | type array_declaration ID
+		   ;
+
+type: 'int' | 'float' ;
+
+assignment: declaration '=' operation	#declAssign
+		  | ID '=' function_call 		#funcAssign
+		  | ID '=' operation			#idAssign
+		  | ARRAY_ID '=' expression1	#arrayIdAssign
+		  ;
 
 operation: expression1 | array ;
 
@@ -103,8 +111,7 @@ value: ID
 	 | ARRAY_ID
 	 ;
 
-comparable_value: ID | INT | FLOAT;
-
+// terminals
 LOOP: 'loop';
 
 ENDLOOP: 'endloop';
