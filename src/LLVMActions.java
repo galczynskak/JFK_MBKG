@@ -22,6 +22,8 @@ public class LLVMActions extends MBKGBaseListener {
         add("scan");
     }};
 
+    HashMap<String, ArrayList<String>> functions = new HashMap<String, ArrayList<String>>();
+
     List<Value> argumentsList = new ArrayList<Value>();
     Stack<Value> stack = new Stack<Value>();
 
@@ -328,10 +330,65 @@ public class LLVMActions extends MBKGBaseListener {
                     ctx.getStart().getLine();
                     System.err.println("line " + ctx.getStart().getLine() + ", too many argument in function scan, Expected 1, got: " + argumentsList.size());
                 }
-
+            }
+        } else {
+            ArrayList<String> args = functions.get(FUNC_NAME);
+            if (args == null) {
+                error(ctx.getStart().getLine(), ", no such function: " + FUNC_NAME);
+            }
+            if (argumentsList.size() != args.size() - 1) {
+                error(ctx.getStart().getLine(), ", wrong number of arguments");
+            }
+            if (args.get(0).equals("int")) {
+                LLVMGenerator.call(FUNC_NAME, "i32");
+            } else if (args.get(0).equals("real")) {
+                LLVMGenerator.call(FUNC_NAME, "double");
+            } else {
+                error(ctx.getStart().getLine(), ", invalid type");
+            }
+            boolean last = false;
+            for (int i = 0; i < argumentsList.size(); i++) {
+                if (i == argumentsList.size() - 1) {
+                    last = true;
+                }
+                Value argument = argumentsList.get(i);
+                String argType = variables.get(argument.value);
+                if (argType == null) {
+                    argType = globalVariables.get(argument.value);
+                }
+                String requiredArg = args.get(i + 1);
+                if (argType.equals(requiredArg)) {
+                    if (argType.equals("int")) {
+                        argType = "i32";
+                    } else if (argType.equals("real")) {
+                        argType = "double";
+                    } else {
+                        error(ctx.getStart().getLine(), "wrong type");
+                    }
+                    LLVMGenerator.callparams(getScope(argument.value), argType, last);
+                }
             }
         }
         argumentsList.clear();
+    }
+
+    @Override
+    public void exitFuncAssign(MBKGParser.FuncAssignContext ctx) {
+        String id = ctx.ID().getText();
+        String type = variables.get(id);
+        if (type == null) {
+            type = globalVariables.get(id);
+        }
+        if (type == null) {
+            error(ctx.getStart().getLine(), "variable not defined");
+        }
+        if (type.equals("int")) {
+            LLVMGenerator.callfinal(getScope(id), "i32");
+        } else if (type.equals("real")) {
+            LLVMGenerator.callfinal(getScope(id), "double");
+        } else {
+            error(ctx.getStart().getLine(), "wrong type");
+        }
     }
 
     @Override
@@ -487,7 +544,6 @@ public class LLVMActions extends MBKGBaseListener {
 
     @Override
     public void enterBlockif(MBKGParser.BlockifContext ctx) {
-        isGlobal = false;
         LLVMGenerator.ifstart();
     }
 
@@ -499,7 +555,6 @@ public class LLVMActions extends MBKGBaseListener {
     @Override
     public void exitBlockelse(MBKGParser.BlockelseContext ctx) {
         LLVMGenerator.elseend();
-        isGlobal = true;
     }
 
     @Override
@@ -508,39 +563,116 @@ public class LLVMActions extends MBKGBaseListener {
         String operation = ctx.if_operation().getText();
         String value = ctx.comparable_value().getText();
 
-        if (globalVariables.containsKey(ID) || variables.containsKey(ID)) {
-            String type = "";
-            if (globalVariables.containsKey(ID)) {
-                type = globalVariables.get(ID);
-            } else if (variables.containsKey(ID)) {
-                type = variables.get(ID);
+        if (value.matches("^[a-zA-Z]+$")) {
+            if (globalVariables.containsKey(ID) || variables.containsKey(ID)) {
+                String type1 = "";
+
+                if (globalVariables.containsKey(ID)) {
+                    type1 = globalVariables.get(ID);
+                } else if (variables.containsKey(ID)) {
+                    type1 = variables.get(ID);
+                }
+
+                String type2 = "";
+
+                if (globalVariables.containsKey(value)) {
+                    type2 = globalVariables.get(value);
+                } else if (variables.containsKey(value)) {
+                    type2 = variables.get(value);
+                }
+
+                if (type1.equals(type2)) {
+                    String operation_text = "";
+                    switch (operation) {
+                        case "==":
+                            operation_text = "eq";
+                            break;
+                        case "!=":
+                            operation_text = "ne";
+                            break;
+                        case "<":
+                            operation_text = "slt";
+                            break;
+                        case ">":
+                            operation_text = "sgt";
+                            break;
+                        case ">=":
+                            operation_text = "sge";
+                            break;
+                        case "<=":
+                            operation_text = "sle";
+                            break;
+                        default:
+                            operation_text = "error";
+                            break;
+                    }
+                    if (operation_text.equals("error")) {
+                        error(ctx.getStart().getLine(), "unsupported operation");
+                    }
+                    if (type1.equals("int")) {
+                        LLVMGenerator.icmp_vars(getScope(ID), getScope(value), "i32", operation_text);
+                    } else if (type1.equals("real")) {
+                        LLVMGenerator.icmp_vars(getScope(ID), getScope(value), "double", operation_text);
+                    } else {
+                        error(ctx.getStart().getLine(), "unsupported type");
+                    }
+                } else {
+                    error(ctx.getStart().getLine(), "varaibles have different types");
+                }
+            } else {
+                error(ctx.getStart().getLine(), "variable not defined");
             }
 
-            if ((type.equals("int") && value.contains("\\.")) || (type.equals("float") && !value.contains("\\."))) {
-                error(ctx.getStart().getLine(), "mismatching comparison types");
-            }
-            String operation_text = "";
-            switch (operation) {
-                case "==":
-                    operation_text = "eq";
-                    break;
-                case "!=":
-                    operation_text = "ne";
-                    break;
-                case ">":
-                    operation_text = "ult";
-                    break;
-                case "<":
-                    operation_text = "ugt";
-                    break;
-            }
-            if (type.equals("int")) {
-                LLVMGenerator.icmp(getScope(ID), value, "i32", operation_text);
-            } else if (type.equals("float")) {
-                LLVMGenerator.icmp(getScope(ID), value, "double", operation_text);
-            }
         } else {
-            error(ctx.getStart().getLine(), "variable not defined");
+
+            if (globalVariables.containsKey(ID) || variables.containsKey(ID)) {
+                String type = "";
+                if (globalVariables.containsKey(ID)) {
+                    type = globalVariables.get(ID);
+                } else if (variables.containsKey(ID)) {
+                    type = variables.get(ID);
+                }
+
+                if ((type.equals("int") && value.contains("\\.")) || (type.equals("real") && !value.contains("\\."))) {
+                    error(ctx.getStart().getLine(), "wrong type comparison");
+                }
+                String operation_text = "";
+                switch (operation) {
+                    case "==":
+                        operation_text = "eq";
+                        break;
+                    case "!=":
+                        operation_text = "ne";
+                        break;
+                    case "<":
+                        operation_text = "ult";
+                        break;
+                    case ">":
+                        operation_text = "ugt";
+                        break;
+                    case ">=":
+                        operation_text = "uge";
+                        break;
+                    case "<=":
+                        operation_text = "ule";
+                        break;
+                    default:
+                        operation_text = "error";
+                        break;
+                }
+                if (operation_text.equals("error")) {
+                    error(ctx.getStart().getLine(), "unsupported operation");
+                }
+                if (type.equals("int")) {
+                    LLVMGenerator.icmp_constant(getScope(ID), value, "i32", operation_text);
+                } else if (type.equals("real")) {
+                    LLVMGenerator.icmp_constant(getScope(ID), value, "double", operation_text);
+                } else {
+                    error(ctx.getStart().getLine(), "unsupported type");
+                }
+            } else {
+                error(ctx.getStart().getLine(), "variable not defined");
+            }
         }
     }
 
@@ -558,6 +690,65 @@ public class LLVMActions extends MBKGBaseListener {
 
     public void exitBlockfor(MBKGParser.BlockforContext ctx) {
         LLVMGenerator.loopend();
+    }
+
+    @Override
+    public void enterFunction(MBKGParser.FunctionContext ctx) {
+        isGlobal = false;
+        String id = ctx.ID().getText();
+        String type = ctx.type().getText();
+        functions.put(id, new ArrayList<String>());
+        functions.get(id).add(type);
+        if (type.equals("int")) {
+            type = "i32";
+        } else if (type.equals("real")) {
+            type = "double";
+        } else {
+            error(ctx.getStart().getLine(), "unsupported return parameter");
+        }
+        LLVMGenerator.functionstart(id, type);
+        MBKGParser.FparamsContext fp = ctx.fparams();
+        while (fp != null) {
+            MBKGParser.FparamsContext nfp = fp.fparams();
+            String paramId = fp.ID().getText();
+            String paramType = fp.type().getText();
+            variables.put(paramId, paramType);
+            functions.get(id).add(paramType);
+            boolean last = false;
+            if (nfp == null) {
+                last = true;
+            }
+            if (paramType.equals("int")) {
+                paramType = "i32";
+            } else if (paramType.equals("real")) {
+                paramType = "double";
+            } else {
+                error(ctx.getStart().getLine(), "unsupported function parameter");
+            }
+            LLVMGenerator.functionparams(paramId, paramType, last);
+            fp = nfp;
+        }
+    }
+
+    @Override
+    public void exitReturn(MBKGParser.ReturnContext ctx) {
+        String ID = ctx.ID().getText();
+        String TYPE = variables.get(ID);
+        if (TYPE == null) {
+            error(ctx.getStart().getLine(), "variable not defined");
+        }
+        if (TYPE.equals("int")) {
+            LLVMGenerator.loadInt(getScope(ID));
+            TYPE = "i32";
+        } else if (TYPE.equals("real")) {
+            LLVMGenerator.loadFloat(getScope(ID));
+            TYPE = "double";
+        } else {
+            error(ctx.getStart().getLine(), "unsupported return parameter");
+        }
+        LLVMGenerator.functionend(TYPE);
+        variables = new HashMap<String, String>();
+        isGlobal = true;
     }
 
     public String getScope(String ID) {

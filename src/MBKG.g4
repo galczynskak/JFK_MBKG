@@ -1,6 +1,17 @@
 grammar MBKG;
 
-program: block;
+program: (function? NEWLINE)* block;
+
+function: type FUNCTION ID '(' fparams ')' BEGIN fblock return ENDFUNCTION
+		| SCAN
+		| PRINT
+		;
+
+return: RETURN ID NEWLINE;
+
+fblock: block;
+
+fparams:  type (ID ',' fparams)* ;
 
 block: (statement? NEWLINE)*;
 
@@ -31,12 +42,19 @@ type: 'int' | 'float' ;
 
 function_call: function value ;
 
-function: SCAN | PRINT ;
-
 assignment: declaration '=' operation	#declAssign
+		  | ID '=' call_function 		#funcAssign
 		  | ID '=' operation			#idAssign
 		  | ARRAY_ID '=' expression1	#arrayIdAssign
 		  ;
+
+call_function: function_name '(' arguments ')';
+
+function_name: function;
+
+arguments: value ',' arguments
+		 | value
+		 ;
 
 ifblock: IF condition BEGIN blockif ENDIF ELSE blockelse ENDELSE;
 
@@ -50,6 +68,8 @@ if_operation: 	  EQUALS #equal
 				| NOTEQUALS #notequal
 				| LESS #less
 				| GREATER #greater
+				| LESSTHAN #lessthan
+				| GREATERTHAN #greaterthan
 				;
 
 operation: expression1 | array ;
@@ -83,7 +103,7 @@ value: ID
 	 | ARRAY_ID
 	 ;
 
-comparable_value: INT | FLOAT;
+comparable_value: ID | INT | FLOAT;
 
 LOOP: 'loop';
 
@@ -92,6 +112,12 @@ ENDLOOP: 'endloop';
 SCAN: 'scan' ;
 
 PRINT: 'print' ;
+
+FUNCTION: 'function';
+
+ENDFUNCTION: 'endfunction';
+
+RETURN: 'return';
 
 IF: 'if';
 
@@ -106,6 +132,10 @@ BEGIN: 'begin';
 EQUALS: '==';
 
 NOTEQUALS: '!=';
+
+GREATERTHAN: '>=';
+
+LESSTHAN: '<=';
 
 GREATER: '>';
 

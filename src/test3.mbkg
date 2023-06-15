@@ -1,0 +1,7 @@
+int x = 0
+
+loop x < 5 begin
+    x = x + 2
+endloop
+
+print x
