@@ -542,8 +542,22 @@ public class LLVMActions extends MBKGBaseListener {
         } else {
             error(ctx.getStart().getLine(), "variable not defined");
         }
+    }
 
 
+    @Override
+    public void enterLoopblock(MBKGParser.LoopblockContext ctx) {
+        String ID = ctx.condition().getChild(0).getText();
+        LLVMGenerator.loopstart(getScope(ID));
+    }
+
+    @Override
+    public void enterBlockfor(MBKGParser.BlockforContext ctx) {
+        LLVMGenerator.loopblockstart();
+    }
+
+    public void exitBlockfor(MBKGParser.BlockforContext ctx) {
+        LLVMGenerator.loopend();
     }
 
     public String getScope(String ID) {

@@ -2,13 +2,18 @@ grammar MBKG;
 
 program: block;
 
-block: (statement? NEWLINE)* statement? ;
+block: (statement? NEWLINE)*;
 
 statement: declaration
 		 | function_call
 		 | assignment
 		 | ifblock
+		 | loopblock
 		 ;
+
+loopblock: LOOP ID condition BEGIN blockfor ENDLOOP;
+
+blockfor: block;
 
 array_declaration : '{' INT '}';
 
@@ -79,6 +84,10 @@ value: ID
 	 ;
 
 comparable_value: INT | FLOAT;
+
+LOOP: 'loop';
+
+ENDLOOP: 'endloop';
 
 SCAN: 'scan' ;
 
