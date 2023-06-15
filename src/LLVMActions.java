@@ -12,6 +12,7 @@ class Value {
 
 public class LLVMActions extends MBKGBaseListener {
     HashMap<String, String> variables = new HashMap<String, String>();
+    HashMap<String, String> globalVariables = new HashMap<String, String>();
     HashSet<String> types = new HashSet<String>() {{
         add("int");
         add("float");
@@ -24,8 +25,16 @@ public class LLVMActions extends MBKGBaseListener {
     List<Value> argumentsList = new ArrayList<Value>();
     Stack<Value> stack = new Stack<Value>();
 
+    Boolean isGlobal;
+
+    @Override
+    public void enterProgram(MBKGParser.ProgramContext ctx) {
+        isGlobal = true;
+    }
+
     @Override
     public void exitProgram(MBKGParser.ProgramContext ctx) {
+        LLVMGenerator.close_main();
         System.out.println(LLVMGenerator.generate());
     }
 
@@ -34,23 +43,33 @@ public class LLVMActions extends MBKGBaseListener {
         String ID = ctx.declaration().getChild(1).getText();
         String ArrayOperation = ctx.operation().getChild(0).getText();
         if (ArrayOperation.charAt(0) != '[') {
-            if (!variables.containsKey(ID)) {
-                error(ctx.getStart().getLine(), "variable not declared");
+            if (!variables.containsKey(ID) && !globalVariables.containsKey(ID)) {
+                error(ctx.getStart().getLine(), "variable not declared 1");
             }
             Value v = stack.pop();
-            if (!v.type.equals(variables.get(ID))) {
-                error(ctx.getStart().getLine(), "assignment type mismatch");
+            if (variables.containsKey(ID)) {
+                if (!v.type.equals(variables.get(ID))) {
+                    error(ctx.getStart().getLine(), "assignment type mismatch 1 ");
+                }
+            } else {
+                if (!v.type.equals(globalVariables.get(ID))) {
+                    System.out.println(v.type);
+                    error(ctx.getStart().getLine(), "assignment type mismatch 2");
+                }
             }
             if (v.type.equals("int")) {
-                LLVMGenerator.assignInt(ID, v.value);
+                LLVMGenerator.assignInt(getScope(ID), v.value);
             }
             if (v.type.equals("float")) {
-                LLVMGenerator.assignFloat(ID, v.value);
+                LLVMGenerator.assignFloat(getScope(ID), v.value);
             }
         } else {
             try {
                 ID = ctx.declaration().getChild(2).getText();
                 String arrType = variables.get(ID);
+                if (arrType == null) {
+                    arrType = globalVariables.get(ID);
+                }
                 String[] split_array_type = arrType.split("\\[");
                 String type = split_array_type[0];
                 String len = split_array_type[1].split("\\]")[0];
@@ -61,20 +80,21 @@ public class LLVMActions extends MBKGBaseListener {
                 }
                 for (Value v : argumentsList) {
 
-                    if (v.type.equals("ID") && variables.containsKey(v.value)) {
+                    if ((v.type.equals("ID") && variables.containsKey(v.value))
+                        || (globalVariables.containsKey(v.value) && globalVariables.get(v.value).contains(type))) {
                         if (type.equals("int")) {
-                            values.add("%" + LLVMGenerator.loadInt(v.value));
+                            values.add("%" + LLVMGenerator.loadInt(getScope(v.value)));
                         } else if (type.equals("float")) {
-                            values.add("%" + LLVMGenerator.loadFloat(v.value));
+                            values.add("%" + LLVMGenerator.loadFloat(getScope(v.value)));
                         }
                     } else if (v.type.equals("ARRAY_ID") && variables.containsKey(v.value)) {
                         String[] split_array_id = v.value.split("\\[");
                         String id = split_array_id[0];
                         String arrId = split_array_id[1].split("\\]")[0];
                         if (type.equals("int")) {
-                            values.add("%" + LLVMGenerator.loadIntArrayValue(id, arrId, len));
+                            values.add("%" + LLVMGenerator.loadIntArrayValue(getScope(id), arrId, len));
                         } else if (type.equals("float")) {
-                            values.add("%" + LLVMGenerator.loadFloatArrayValue(id, arrId, len));
+                            values.add("%" + LLVMGenerator.loadFloatArrayValue(getScope(id), arrId, len));
                         }
                     } else if (v.type.equals("int") || v.type.equals("float")) {
                         values.add(v.value);
@@ -82,9 +102,9 @@ public class LLVMActions extends MBKGBaseListener {
                 }
                 for (int i = 0; i < values.size(); i++) {
                     if (type.equals("int")) {
-                        LLVMGenerator.assignArrayIntElement(values.get(i), ID, Integer.toString(i), len);
+                        LLVMGenerator.assignArrayIntElement(values.get(i), getScope(ID), Integer.toString(i), len);
                     } else if (type.equals("float")) {
-                        LLVMGenerator.assignArrayFloatElement(values.get(i), ID, Integer.toString(i), len);
+                        LLVMGenerator.assignArrayFloatElement(values.get(i), getScope(ID), Integer.toString(i), len);
                     }
                 }
                 argumentsList.clear();
@@ -99,24 +119,33 @@ public class LLVMActions extends MBKGBaseListener {
     public void exitIdAssign(MBKGParser.IdAssignContext ctx) {
         String ID = ctx.ID().getText();
 
-        if (!variables.containsKey(ID)) {
-            error(ctx.getStart().getLine(), "variable not declared");
+        if (!variables.containsKey(ID) && !globalVariables.containsKey(ID)) {
+            error(ctx.getStart().getLine(), "variable not declared 2");
         }
         String ArrayOperation = ctx.operation().getChild(0).getText();
         if (ArrayOperation.charAt(0) != '[') {
             Value v = stack.pop();
-            if (!v.type.equals(variables.get(ID))) {
-                error(ctx.getStart().getLine(), "assignment type mismatch");
+            if (variables.containsKey(ID)) {
+                if (!v.type.equals(variables.get(ID))) {
+                    error(ctx.getStart().getLine(), "assignment type mismatch 3");
+                }
+            } else {
+                if (!v.type.equals(globalVariables.get(ID))) {
+                    error(ctx.getStart().getLine(), "assignment type mismatch 4");
+                }
             }
             if (v.type.equals("int")) {
-                LLVMGenerator.assignInt(ID, v.value);
+                LLVMGenerator.assignInt(getScope(ID), v.value);
             }
             if (v.type.equals("float")) {
-                LLVMGenerator.assignFloat(ID, v.value);
+                LLVMGenerator.assignFloat(getScope(ID), v.value);
             }
         } else {
             try {
                 String arrType = variables.get(ID);
+                if (arrType == null) {
+                    arrType = globalVariables.get(ID);
+                }
                 String[] split_array_type = arrType.split("\\[");
                 String type = split_array_type[0];
                 String len = split_array_type[1].split("\\]")[0];
@@ -126,20 +155,26 @@ public class LLVMActions extends MBKGBaseListener {
                 }
                 for (Value v : argumentsList) {
 
-                    if (v.type.equals("ID") && variables.containsKey(v.value)) {
+                    if (v.type.equals("ID") && (
+                        (variables.containsKey(v.value) && variables.get(v.value).contains(type)) 
+                        || (globalVariables.containsKey(v.value) && globalVariables.get(v.value).contains(type)))
+                        ) {
                         if (type.equals("int")) {
-                            values.add("%" + LLVMGenerator.loadInt(v.value));
+                            values.add("%" + LLVMGenerator.loadInt(getScope(v.value)));
                         } else if (type.equals("float")) {
-                            values.add("%" + LLVMGenerator.loadFloat(v.value));
+                            values.add("%" + LLVMGenerator.loadFloat(getScope(v.value)));
                         }
-                    } else if (v.type.equals("ARRAY_ID") && variables.containsKey(v.value)) {
+                    } else if (v.type.equals("ARRAY_ID") && (
+                        (variables.containsKey(v.value) && variables.get(v.value).contains(type)) 
+                        || (globalVariables.containsKey(v.value) && globalVariables.get(v.value).contains(type))
+                        )) {
                         String[] split_array_id = v.value.split("\\[");
                         String id = split_array_id[0];
                         String arrId = split_array_id[1].split("\\]")[0];
                         if (type.equals("int")) {
-                            values.add("%" + LLVMGenerator.loadIntArrayValue(id, arrId, len));
+                            values.add("%" + LLVMGenerator.loadIntArrayValue(getScope(id), arrId, len));
                         } else if (type.equals("float")) {
-                            values.add("%" + LLVMGenerator.loadFloatArrayValue(id, arrId, len));
+                            values.add("%" + LLVMGenerator.loadFloatArrayValue(getScope(id), arrId, len));
                         }
                     } else if (v.type.equals("int") || v.type.equals("float")) {
                         values.add(v.value);
@@ -147,9 +182,9 @@ public class LLVMActions extends MBKGBaseListener {
                 }
                 for (int i = 0; i < values.size(); i++) {
                     if (type.equals("int")) {
-                        LLVMGenerator.assignArrayIntElement(values.get(i), ID, Integer.toString(i), len);
+                        LLVMGenerator.assignArrayIntElement(values.get(i), getScope(ID), Integer.toString(i), len);
                     } else if (type.equals("float")) {
-                        LLVMGenerator.assignArrayFloatElement(values.get(i), ID, Integer.toString(i), len);
+                        LLVMGenerator.assignArrayFloatElement(values.get(i), getScope(ID), Integer.toString(i), len);
                     }
                 }
                 argumentsList.clear();
@@ -166,10 +201,13 @@ public class LLVMActions extends MBKGBaseListener {
         String[] split_array_id = ARRAY_ID.split("\\[");
         String id = split_array_id[0];
         String arrId = split_array_id[1].split("\\]")[0];
-        if (!variables.containsKey(id)) {
-            error(ctx.getStart().getLine(), "variable not declared");
+        if (!variables.containsKey(id) && !globalVariables.containsKey(id)) {
+            error(ctx.getStart().getLine(), "variable not declared 3");
         }
         String arrType = variables.get(id);
+        if (arrType == null) {
+            arrType = globalVariables.get(id);
+        }
         String[] split_array_type = arrType.split("\\[");
         String type = split_array_type[0];
         String len = split_array_type[1].split("\\]")[0];
@@ -183,10 +221,10 @@ public class LLVMActions extends MBKGBaseListener {
             error(ctx.getStart().getLine(), "arrayId assignment type mismatch");
         }
         if (v.type.equals("int")) {
-            LLVMGenerator.assignArrayIntElement(v.value, id, arrId, len);
+            LLVMGenerator.assignArrayIntElement(v.value, getScope(id), arrId, len);
         }
         if (v.type.equals("float")) {
-            LLVMGenerator.assignArrayFloatElement(v.value, id, arrId, len);
+            LLVMGenerator.assignArrayFloatElement(v.value, getScope(id), arrId, len);
         }
     }
 
@@ -195,20 +233,28 @@ public class LLVMActions extends MBKGBaseListener {
         String ID = ctx.ID().getText();
         String TYPE = ctx.type().getText();
 
-        if (!variables.containsKey(ID)) {
+        if ((!variables.containsKey(ID) && !isGlobal) || (!globalVariables.containsKey(ID) && isGlobal)) {
             if (types.contains(TYPE)) {
                 try {
                     String ARRAY_LEN = ctx.array_declaration().getChild(1).getText();
-                    variables.put(ID, TYPE + '[' + ARRAY_LEN + ']');
+                    if (isGlobal) {
+                        globalVariables.put(ID, TYPE + '[' + ARRAY_LEN + ']');
+                    } else {
+                        variables.put(ID, TYPE + '[' + ARRAY_LEN + ']');
+                    }
                     if (TYPE.equals("int")) {
-                        LLVMGenerator.declareIntArray(ID, ARRAY_LEN);
+                        LLVMGenerator.declareIntArray(ID, ARRAY_LEN, isGlobal);
                     } else if (TYPE.equals("float")) {
-                        LLVMGenerator.declareFloatArray(ID, ARRAY_LEN);
+                        LLVMGenerator.declareFloatArray(ID, ARRAY_LEN, isGlobal);
                     }
                 } catch (NullPointerException ex) {
-                    variables.put(ID, TYPE);
-                    if (TYPE.equals("int")) LLVMGenerator.declareInt(ID);
-                    else if (TYPE.equals("float")) LLVMGenerator.declareFloat(ID);
+                    if (isGlobal) {
+                        globalVariables.put(ID, TYPE);
+                    } else {
+                        variables.put(ID, TYPE);
+                    }
+                    if (TYPE.equals("int")) LLVMGenerator.declareInt(ID, isGlobal);
+                    else if (TYPE.equals("float")) LLVMGenerator.declareFloat(ID, isGlobal);
                 }
             } else {
                 ctx.getStart().getLine();
@@ -216,7 +262,7 @@ public class LLVMActions extends MBKGBaseListener {
             }
         } else {
             ctx.getStart().getLine();
-            System.err.println("Line " + ctx.getStart().getLine() + ", variabble already defined: " + ID);
+            System.err.println("Line " + ctx.getStart().getLine() + ", variable already defined: " + ID);
         }
     }
 
@@ -228,11 +274,14 @@ public class LLVMActions extends MBKGBaseListener {
                 Value argument = argumentsList.get(0);
                 String ID = argument.value;
                 String type = variables.get(ID);
+                if (type == null) {
+                    type = globalVariables.get(ID);
+                }
                 if (type != null) {
                     if (type.equals("int")) {
-                        LLVMGenerator.printInt(ID);
+                        LLVMGenerator.printInt(getScope(ID));
                     } else if (type.equals("float")) {
-                        LLVMGenerator.printFloat(ID);
+                        LLVMGenerator.printFloat(getScope(ID));
                     }
                 } else {
                     if (argument.type.equals("int")) {
@@ -258,11 +307,14 @@ public class LLVMActions extends MBKGBaseListener {
                 Value argument = argumentsList.get(0);
                 String ID = argument.value;
                 String type = variables.get(ID);
+                if (type == null) {
+                    type = globalVariables.get(ID);
+                }
                 if (type != null) {
                     if (type.equals("int")) {
-                        LLVMGenerator.scanInt(ID);
+                        LLVMGenerator.scanInt(getScope(ID));
                     } else if (type.equals("float")) {
-                        LLVMGenerator.scanFloat(ID);
+                        LLVMGenerator.scanFloat(getScope(ID));
                     }
                 } else {
                     ctx.getStart().getLine();
@@ -314,13 +366,16 @@ public class LLVMActions extends MBKGBaseListener {
     @Override
     public void exitId(MBKGParser.IdContext ctx) {
         String ID = ctx.ID().getText();
-        if (variables.containsKey(ID)) {
+        if (variables.containsKey(ID) || globalVariables.containsKey(ID)) {
             String type = variables.get(ID);
+            if (type == null) {
+                type = globalVariables.get(ID);
+            }
             int reg = -1;
             if (type.equals("int")) {
-                reg = LLVMGenerator.loadInt(ID);
+                reg = LLVMGenerator.loadInt(getScope(ID));
             } else if (type.equals("float")) {
-                reg = LLVMGenerator.loadFloat(ID);
+                reg = LLVMGenerator.loadFloat(getScope(ID));
             }
             stack.push(new Value(type, "%" + reg));
         } else {
@@ -334,16 +389,19 @@ public class LLVMActions extends MBKGBaseListener {
         String[] split_array_id = ARRAY_ID.split("\\[");
         String id = split_array_id[0];
         String arrId = split_array_id[1].split("\\]")[0];
-        if (variables.containsKey(id)) {
+        if (variables.containsKey(id) || globalVariables.containsKey(id)) {
             String arrType = variables.get(id);
+            if (arrType == null) {
+                arrType = globalVariables.get(id);
+            }
             String[] split_array_type = arrType.split("\\[");
             String type = split_array_type[0];
             String len = split_array_type[1].split("\\]")[0];
             int reg = -1;
             if (type.equals("int")) {
-                reg = LLVMGenerator.loadIntArrayValue(id, arrId, len);
+                reg = LLVMGenerator.loadIntArrayValue(getScope(id), arrId, len);
             } else if (type.equals("float")) {
-                reg = LLVMGenerator.loadFloatArrayValue(id, arrId, len);
+                reg = LLVMGenerator.loadFloatArrayValue(getScope(id), arrId, len);
             }
             stack.push(new Value(type, "%" + reg));
         } else {
@@ -421,6 +479,20 @@ public class LLVMActions extends MBKGBaseListener {
         } else {
             error(ctx.getStart().getLine(), "division type mismatch");
         }
+    }
+
+    public String getScope(String ID) {
+        String scopedID;
+        if (isGlobal) {
+            scopedID = "@" + ID;
+        } else {
+            if (!variables.containsKey(ID)) {
+                scopedID = "@" + ID;
+            } else {
+                scopedID = "%" + ID;
+            }
+        }
+        return scopedID;
     }
 
 
