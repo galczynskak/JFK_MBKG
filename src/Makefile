@@ -2,6 +2,10 @@ ANTLR=../antlr-4.13.0-complete.jar
 
 all: generate compile build run
 
+gen: generate compile
+
+exec: build run
+
 generate:
 	java -jar $(ANTLR) -o output MBKG.g4
 
